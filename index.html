@@ -11,7 +11,7 @@
             padding: 0;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             padding: 10px;
             background: #f5f5f7;
             color: #1c1c1e;
@@ -25,64 +25,65 @@
             max-width: 100%;
             width: 100%;
             margin: 0 auto;
-            padding-bottom: 220px; /* Место для клавиатуры */
+            padding-bottom: 220px;
         }
         h1 {
             font-size: 1.5rem;
             text-align: center;
             color: #0066cc;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         .subtitle {
             text-align: center;
             color: #666;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             font-size: 0.9rem;
         }
         .card {
             background: white;
             border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         h2 {
             color: #0066cc;
             font-size: 1.2rem;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .numbers {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin: 10px 0;
+            gap: 6px;
+            margin: 8px 0;
         }
         .number {
-            width: 40px;
-            height: 40px;
-            border-radius: 20px;
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
             background: #0066cc;
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 15px;
         }
         .number.small {
             background: #ff2d55;
+            width: 36px;
         }
         button {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             background: #0066cc;
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 15px;
             font-weight: 500;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 8px;
             -webkit-tap-highlight-color: transparent;
         }
         button:active {
@@ -90,25 +91,24 @@
         }
         #historyInput {
             width: 100%;
-            height: 80px;
+            height: 70px;
             border: 1px solid #ddd;
             border-radius: 8px;
             padding: 8px;
-            margin-bottom: 10px;
-            font-size: 16px;
+            margin-bottom: 8px;
+            font-size: 15px;
             resize: none;
             caret-color: transparent;
-            pointer-events: none;
             background: white;
         }
         .stats-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 14px;
+            margin-top: 8px;
+            font-size: 13px;
         }
         .stats-table th, .stats-table td {
-            padding: 8px;
+            padding: 6px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
@@ -121,40 +121,38 @@
             font-weight: bold;
         }
         .history-item {
-            padding: 8px;
+            padding: 6px 0;
             border-bottom: 1px solid #eee;
-            font-size: 14px;
+            font-size: 13px;
         }
-        
-        /* Кастомная клавиатура */
         .custom-keyboard {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             background: #e5e5ea;
-            padding: 10px;
+            padding: 8px;
             border-top: 1px solid #ccc;
             z-index: 1000;
-            display: flex;
+            display: none;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
         .keyboard-row {
             display: flex;
             justify-content: space-between;
-            gap: 8px;
+            gap: 6px;
         }
         .keyboard-key {
             flex: 1;
-            height: 50px;
+            height: 48px;
             background: white;
             border: 1px solid #ccc;
-            border-radius: 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
@@ -194,11 +192,9 @@
         
         <div class="card">
             <h2>Добавить историю</h2>
-            <textarea 
-                id="historyInput" 
-                placeholder="Коснитесь для ввода (формат: 1,2,3,4,5,6,7,8 | 1)"
-                readonly
-            ></textarea>
+            <div id="inputContainer" style="position:relative;">
+                <textarea id="historyInput" placeholder="Коснитесь для ввода (формат: 1,2,3,4,5,6,7,8 | 1)"></textarea>
+            </div>
             <button id="addHistoryBtn">Добавить</button>
         </div>
         
@@ -223,7 +219,6 @@
         </div>
     </div>
 
-    <!-- Кастомная клавиатура -->
     <div class="custom-keyboard" id="customKeyboard">
         <div class="keyboard-row">
             <div class="keyboard-key" data-key="1">1</div>
@@ -257,67 +252,65 @@
         // Элементы интерфейса
         const historyInput = document.getElementById('historyInput');
         const customKeyboard = document.getElementById('customKeyboard');
-        const smartGenBtn = document.getElementById('smartGenBtn');
-        const randomGenBtn = document.getElementById('randomGenBtn');
-        const addHistoryBtn = document.getElementById('addHistoryBtn');
-        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const inputContainer = document.getElementById('inputContainer');
 
-        // Инициализация при загрузке
+        // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             updateStats();
             updateHistoryList();
             generateRandomNumbers();
             
             // Обработчики событий
-            historyInput.addEventListener('click', showKeyboard);
-            smartGenBtn.addEventListener('click', generateSmartNumbers);
-            randomGenBtn.addEventListener('click', generateRandomNumbers);
-            addHistoryBtn.addEventListener('click', addHistory);
-            clearHistoryBtn.addEventListener('click', clearHistory);
+            inputContainer.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showKeyboard();
+            });
+            
+            document.getElementById('smartGenBtn').addEventListener('click', generateSmartNumbers);
+            document.getElementById('randomGenBtn').addEventListener('click', generateRandomNumbers);
+            document.getElementById('addHistoryBtn').addEventListener('click', addHistory);
+            document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
             
             // Обработчики для клавиатуры
             document.querySelectorAll('.keyboard-key').forEach(key => {
-                key.addEventListener('click', handleKeyPress);
+                key.addEventListener('click', (e) => {
+                    const keyValue = e.currentTarget.getAttribute('data-key');
+                    handleKeyPress(keyValue);
+                });
             });
             
             // Скрытие клавиатуры при клике вне поля ввода
-            document.addEventListener('click', (e) => {
-                if (e.target !== historyInput && !customKeyboard.contains(e.target)) {
-                    hideKeyboard();
-                }
-            });
+            document.addEventListener('click', hideKeyboard);
         });
 
-        // ===== Функции клавиатуры =====
+        // Функции клавиатуры
         function showKeyboard() {
             customKeyboard.style.display = 'flex';
-            // Прокручиваем к полю ввода
-            historyInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            historyInput.focus();
         }
 
         function hideKeyboard() {
-            customKeyboard.style.display = 'none';
+            if (customKeyboard.style.display === 'flex') {
+                customKeyboard.style.display = 'none';
+            }
         }
 
-        function handleKeyPress(e) {
-            const key = e.currentTarget.getAttribute('data-key');
-            
+        function handleKeyPress(key) {
             switch(key) {
                 case 'Backspace':
-                    // Удаление последнего символа
                     historyInput.value = historyInput.value.slice(0, -1);
                     break;
                 case 'Enter':
-                    // Скрытие клавиатуры
                     hideKeyboard();
                     break;
                 default:
-                    // Добавление символа
                     historyInput.value += key;
             }
         }
 
-        // ===== Логика генерации чисел =====
+        // Остальные функции (updateStats, generateSmartNumbers и т.д.) остаются без изменений
+        // ... (вставить все остальные функции из предыдущего кода)
+
         function updateStats() {
             stats = { field1: {}, field2: {} };
 
@@ -326,12 +319,10 @@
                 const field1Numbers = field1Str.split(',').map(Number);
                 const field2Number = parseInt(field2Str);
 
-                // Поле 1
                 field1Numbers.forEach(num => {
                     stats.field1[num] = (stats.field1[num] || 0) + 1;
                 });
 
-                // Поле 2
                 stats.field2[field2Number] = (stats.field2[field2Number] || 0) + 1;
             });
 
@@ -342,15 +333,10 @@
             const table = document.getElementById('statsTable');
             table.innerHTML = '';
 
-            // Сортируем по частоте
-            const sortedNumbers = Object.entries(stats.field1)
-                .sort((a, b) => b[1] - a[1]);
-
-            // Определяем "горячие" и "холодные" числа
+            const sortedNumbers = Object.entries(stats.field1).sort((a, b) => b[1] - a[1]);
             const hotNumbers = sortedNumbers.slice(0, 5).map(item => parseInt(item[0]));
             const coldNumbers = sortedNumbers.slice(-5).map(item => parseInt(item[0]));
 
-            // Заполняем таблицу
             sortedNumbers.forEach(([num, count]) => {
                 const row = document.createElement('tr');
                 const numCell = document.createElement('td');
@@ -437,7 +423,6 @@
             const input = historyInput.value.trim();
             if (!input) return alert("Введите данные!");
 
-            // Проверка формата
             if (!input.includes('|')) {
                 return alert("Используйте формат: 1,2,3,4,5,6,7,8 | 1");
             }
