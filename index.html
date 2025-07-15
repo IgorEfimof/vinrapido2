@@ -51,6 +51,11 @@
             font-size: 1.2rem;
             margin-bottom: 8px;
         }
+        h3 {
+            color: #0066cc;
+            font-size: 1rem;
+            margin: 10px 0 5px;
+        }
         .numbers {
             display: flex;
             flex-wrap: wrap;
@@ -109,7 +114,7 @@
         .stats-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 8px;
+            margin-top: 5px;
             font-size: 13px;
         }
         .stats-table th, .stats-table td {
@@ -205,7 +210,9 @@
         </div>
         
         <div class="card">
-            <h2>Статистика чисел (Поле 1)</h2>
+            <h2>Статистика чисел</h2>
+            
+            <h3>Поле 1 (8 из 20)</h3>
             <table class="stats-table">
                 <thead>
                     <tr>
@@ -214,7 +221,19 @@
                         <th>Статус</th>
                     </tr>
                 </thead>
-                <tbody id="statsTable"></tbody>
+                <tbody id="statsTable1"></tbody>
+            </table>
+            
+            <h3 style="margin-top:15px;">Поле 2 (1 из 4)</h3>
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Число</th>
+                        <th>Выпало раз</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody id="statsTable2"></tbody>
             </table>
         </div>
         
@@ -344,36 +363,47 @@
                 }
             });
 
-            renderStatsTable();
+            renderStatsTable('statsTable1', stats.field1, 20);
+            renderStatsTable('statsTable2', stats.field2, 4);
         }
 
-        function renderStatsTable() {
-            const table = document.getElementById('statsTable');
+        function renderStatsTable(tableId, numberStats, maxNum) {
+            const table = document.getElementById(tableId);
             table.innerHTML = '';
 
-            const sortedNumbers = Object.entries(stats.field1)
-                .filter(([num]) => !isNaN(num))
-                .sort((a, b) => b[1] - a[1]);
+            // Создаем все возможные числа для этого поля
+            const allNumbers = Array.from({length: maxNum}, (_, i) => i + 1);
+            
+            // Собираем статистику
+            const numbersData = allNumbers.map(num => ({
+                number: num,
+                count: numberStats[num] || 0
+            }));
 
-            const hotNumbers = sortedNumbers.slice(0, 5).map(item => parseInt(item[0]));
-            const coldNumbers = sortedNumbers.slice(-5).map(item => parseInt(item[0]));
+            // Сортируем по частоте выпадения
+            numbersData.sort((a, b) => b.count - a.count);
 
-            sortedNumbers.forEach(([num, count]) => {
-                const numInt = parseInt(num);
-                if (isNaN(numInt)) return;
+            // Определяем горячие и холодные числа (первые и последние 20%)
+            const hotThreshold = Math.ceil(maxNum * 0.2);
+            const coldThreshold = Math.max(1, Math.floor(maxNum * 0.2));
+            
+            const hotNumbers = numbersData.slice(0, hotThreshold).map(item => item.number);
+            const coldNumbers = numbersData.slice(-coldThreshold).map(item => item.number);
 
+            // Заполняем таблицу
+            numbersData.forEach(item => {
                 const row = document.createElement('tr');
                 const numCell = document.createElement('td');
                 const countCell = document.createElement('td');
                 const statusCell = document.createElement('td');
 
-                numCell.textContent = numInt;
-                countCell.textContent = count;
+                numCell.textContent = item.number;
+                countCell.textContent = item.count;
 
-                if (hotNumbers.includes(numInt)) {
+                if (hotNumbers.includes(item.number)) {
                     statusCell.textContent = 'Горячее';
                     statusCell.className = 'hot';
-                } else if (coldNumbers.includes(numInt)) {
+                } else if (coldNumbers.includes(item.number)) {
                     statusCell.textContent = 'Холодное';
                     statusCell.className = 'cold';
                 }
@@ -386,8 +416,8 @@
         }
 
         function generateSmartNumbers() {
-            const field1Candidates = getWeightedNumbers(stats.field1, 8);
-            const field2Candidates = getWeightedNumbers(stats.field2, 1);
+            const field1Candidates = getWeightedNumbers(stats.field1, 8, 20);
+            const field2Candidates = getWeightedNumbers(stats.field2, 1, 4);
             displayNumbers(field1Candidates, field2Candidates);
         }
 
@@ -403,28 +433,25 @@
             displayNumbers(field1, field2);
         }
 
-        function getWeightedNumbers(numberStats, count) {
-            // Фильтруем корректные числа
-            const validEntries = Object.entries(numberStats)
-                .filter(([num]) => {
-                    const n = parseInt(num);
-                    return !isNaN(n) && (count === 1 ? (n >= 1 && n <= 4) : (n >= 1 && n <= 20));
-                });
+        function getWeightedNumbers(numberStats, count, maxNum) {
+            // Создаем массив всех возможных чисел
+            const allNumbers = Array.from({length: maxNum}, (_, i) => i + 1);
             
             // Если нет статистики - случайные числа
-            if (validEntries.length === 0) {
-                if (count === 1) return Math.floor(Math.random() * 4) + 1;
+            if (Object.keys(numberStats).length === 0) {
+                if (count === 1) return Math.floor(Math.random() * maxNum) + 1;
                 
                 const result = [];
-                while (result.length < 8) {
-                    const num = Math.floor(Math.random() * 20) + 1;
+                while (result.length < count) {
+                    const num = Math.floor(Math.random() * maxNum) + 1;
                     if (!result.includes(num)) result.push(num);
                 }
                 return result.sort((a, b) => a - b);
             }
 
-            const numbers = validEntries.map(([num]) => parseInt(num));
-            const weights = validEntries.map(([, cnt]) => cnt);
+            // Создаем взвешенный массив
+            const numbers = allNumbers.filter(num => numberStats[num] !== undefined);
+            const weights = numbers.map(num => numberStats[num] || 1);
             const minWeight = Math.min(...weights);
             const adjustedWeights = weights.map(w => w + minWeight);
 
