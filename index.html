@@ -12,6 +12,7 @@
             color: #1c1c1e;
             max-width: 100%;
             margin: 0 auto;
+            touch-action: manipulation;
         }
         .card {
             background: white;
@@ -65,6 +66,9 @@
             border-radius: 8px;
             padding: 8px;
             margin-bottom: 10px;
+            font-size: 16px;
+            resize: none;
+            caret-color: #0066cc;
         }
         .stats-table {
             width: 100%;
@@ -84,6 +88,48 @@
             color: #007aff;
             font-weight: bold;
         }
+
+        /* Кастомная клавиатура */
+        .custom-keyboard {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #e5e5ea;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            z-index: 1000;
+        }
+        .keyboard-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .keyboard-key {
+            width: 23%;
+            height: 50px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        .keyboard-key:active {
+            background: #d1d1d6;
+        }
+        .keyboard-key.wide {
+            width: 48%;
+        }
+        .keyboard-key.blue {
+            background: #0066cc;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -102,26 +148,39 @@
 
     <div class="card">
         <h2>Добавить историю</h2>
-        <textarea id="historyInput" placeholder="Формат: 1,3,5,7,9,11,13,15 | 2"></textarea>
+        <textarea 
+            id="historyInput" 
+            placeholder="Формат: 1,3,5,7,9,11,13,15 | 2"
+            readonly
+            onclick="showKeyboard()"
+        ></textarea>
         <button onclick="addHistory()">Добавить</button>
     </div>
 
-    <div class="card">
-        <h2>Статистика чисел (Поле 1)</h2>
-        <table class="stats-table">
-            <tr>
-                <th>Число</th>
-                <th>Выпало раз</th>
-                <th>Статус</th>
-            </tr>
-            <tbody id="statsTable"></tbody>
-        </table>
-    </div>
-
-    <div class="card">
-        <h2>История розыгрышей</h2>
-        <div id="historyList"></div>
-        <button onclick="clearHistory()">Очистить историю</button>
+    <!-- Кастомная клавиатура -->
+    <div class="custom-keyboard" id="customKeyboard">
+        <div class="keyboard-row">
+            <div class="keyboard-key" onclick="insertKey('1')">1</div>
+            <div class="keyboard-key" onclick="insertKey('2')">2</div>
+            <div class="keyboard-key" onclick="insertKey('3')">3</div>
+            <div class="keyboard-key" onclick="insertKey('←')">←</div>
+        </div>
+        <div class="keyboard-row">
+            <div class="keyboard-key" onclick="insertKey('4')">4</div>
+            <div class="keyboard-key" onclick="insertKey('5')">5</div>
+            <div class="keyboard-key" onclick="insertKey('6')">6</div>
+            <div class="keyboard-key" onclick="insertKey(',')">,</div>
+        </div>
+        <div class="keyboard-row">
+            <div class="keyboard-key" onclick="insertKey('7')">7</div>
+            <div class="keyboard-key" onclick="insertKey('8')">8</div>
+            <div class="keyboard-key" onclick="insertKey('9')">9</div>
+            <div class="keyboard-key" onclick="insertKey('|')">|</div>
+        </div>
+        <div class="keyboard-row">
+            <div class="keyboard-key wide" onclick="insertKey('0')">0</div>
+            <div class="keyboard-key wide blue" onclick="hideKeyboard()">✔ Готово</div>
+        </div>
     </div>
 
     <script>
@@ -133,43 +192,73 @@
         updateStats();
         updateHistoryList();
 
-        // Анализ истории
+        // ===== Кастомная клавиатура =====
+        const keyboard = document.getElementById('customKeyboard');
+        const historyInput = document.getElementById('historyInput');
+
+        function showKeyboard() {
+            keyboard.style.display = 'block';
+            historyInput.focus();
+        }
+
+        function hideKeyboard() {
+            keyboard.style.display = 'none';
+        }
+
+        function insertKey(key) {
+            const input = historyInput;
+            const startPos = input.selectionStart;
+            const endPos = input.selectionEnd;
+            
+            if (key === '←') {
+                // Удаление символа
+                if (startPos > 0) {
+                    input.value = input.value.substring(0, startPos - 1) + input.value.substring(endPos);
+                    input.selectionStart = input.selectionEnd = startPos - 1;
+                }
+            } else {
+                // Вставка символа
+                input.value = input.value.substring(0, startPos) + key + input.value.substring(endPos);
+                input.selectionStart = input.selectionEnd = startPos + 1;
+            }
+        }
+
+        // Скрытие клавиатуры при клике вне поля
+        document.addEventListener('click', (e) => {
+            if (e.target !== historyInput && !keyboard.contains(e.target)) {
+                hideKeyboard();
+            }
+        });
+
+        // ===== Логика генерации чисел =====
         function updateStats() {
             stats = { field1: {}, field2: {} };
 
-            // Считаем частоту чисел
             history.forEach(entry => {
                 const [field1Str, field2Str] = entry.split(' | ');
                 const field1Numbers = field1Str.split(',').map(Number);
                 const field2Number = parseInt(field2Str);
 
-                // Поле 1
                 field1Numbers.forEach(num => {
                     stats.field1[num] = (stats.field1[num] || 0) + 1;
                 });
 
-                // Поле 2
                 stats.field2[field2Number] = (stats.field2[field2Number] || 0) + 1;
             });
 
-            // Обновляем таблицу
             renderStatsTable();
         }
 
-        // Отображение статистики
         function renderStatsTable() {
-            const table = document.getElementById('statsTable');
-            table.innerHTML = '';
+            const table = document.createElement('tbody');
+            table.id = 'statsTable';
 
-            // Сортируем по частоте
             const sortedNumbers = Object.entries(stats.field1)
                 .sort((a, b) => b[1] - a[1]);
 
-            // Определяем "горячие" и "холодные"
             const hotNumbers = sortedNumbers.slice(0, 5).map(item => parseInt(item[0]));
             const coldNumbers = sortedNumbers.slice(-5).map(item => parseInt(item[0]));
 
-            // Заполняем таблицу
             sortedNumbers.forEach(([num, count]) => {
                 const row = document.createElement('tr');
                 const numCell = document.createElement('td');
@@ -192,17 +281,17 @@
                 row.appendChild(statusCell);
                 table.appendChild(row);
             });
+
+            const oldTable = document.querySelector('#statsTable');
+            if (oldTable) oldTable.replaceWith(table);
         }
 
-        // Умная генерация
         function generateSmartNumbers() {
             const field1Candidates = getWeightedNumbers(stats.field1, 8);
             const field2Candidates = getWeightedNumbers(stats.field2, 1);
-
             displayNumbers(field1Candidates, field2Candidates);
         }
 
-        // Случайная генерация
         function generateRandomNumbers() {
             const field1 = [];
             while (field1.length < 8) {
@@ -215,12 +304,9 @@
             displayNumbers(field1, field2);
         }
 
-        // Весовая выборка (частота влияет на вероятность)
         function getWeightedNumbers(numberStats, count) {
             const numbers = Object.keys(numberStats).map(Number);
             const weights = numbers.map(num => numberStats[num] || 1);
-
-            // Нормализуем веса (чтобы даже редкие числа имели шанс)
             const minWeight = Math.min(...weights);
             const adjustedWeights = weights.map(w => w + minWeight);
 
@@ -247,7 +333,6 @@
             return count === 1 ? result[0] : result.sort((a, b) => a - b);
         }
 
-        // Отображение чисел
         function displayNumbers(field1, field2) {
             const field1El = document.getElementById('field1');
             const field2El = document.getElementById('field2');
@@ -259,19 +344,23 @@
             field2El.innerHTML = `<div class="number small">${field2}</div>`;
         }
 
-        // Добавление в историю
         function addHistory() {
             const input = document.getElementById('historyInput').value.trim();
             if (!input) return alert("Введите данные!");
+
+            // Проверка формата
+            if (!input.includes('|')) {
+                return alert("Используйте формат: 1,2,3,4,5,6,7,8 | 1");
+            }
 
             history.push(input);
             localStorage.setItem('rapido2_history', JSON.stringify(history));
             updateStats();
             updateHistoryList();
             document.getElementById('historyInput').value = '';
+            hideKeyboard();
         }
 
-        // Обновление списка истории
         function updateHistoryList() {
             const historyList = document.getElementById('historyList');
             historyList.innerHTML = history.map((item, index) => 
@@ -279,7 +368,6 @@
             ).join('');
         }
 
-        // Очистка истории
         function clearHistory() {
             if (confirm("Удалить всю историю?")) {
                 history = [];
