@@ -323,20 +323,25 @@
             inputDisplay.style.color = inputText ? '#1c1c1e' : '#666';
         }
 
-        // Остальные функции
+        // Основные функции генератора
         function updateStats() {
             stats = { field1: {}, field2: {} };
 
             history.forEach(entry => {
-                const [field1Str, field2Str] = entry.split(' | ');
-                const field1Numbers = field1Str.split(',').map(Number);
-                const field2Number = parseInt(field2Str);
+                try {
+                    const [field1Str, field2Str] = entry.split('|').map(s => s.trim());
+                    const field1Numbers = field1Str.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n >= 1 && n <= 20);
+                    const field2Number = parseInt(field2Str);
 
-                field1Numbers.forEach(num => {
-                    stats.field1[num] = (stats.field1[num] || 0) + 1;
-                });
-
-                stats.field2[field2Number] = (stats.field2[field2Number] || 0) + 1;
+                    if (field1Numbers.length === 8 && !isNaN(field2Number) && field2Number >= 1 && field2Number <= 4) {
+                        field1Numbers.forEach(num => {
+                            stats.field1[num] = (stats.field1[num] || 0) + 1;
+                        });
+                        stats.field2[field2Number] = (stats.field2[field2Number] || 0) + 1;
+                    }
+                } catch (e) {
+                    console.error("Ошибка обработки записи:", entry, e);
+                }
             });
 
             renderStatsTable();
@@ -346,23 +351,29 @@
             const table = document.getElementById('statsTable');
             table.innerHTML = '';
 
-            const sortedNumbers = Object.entries(stats.field1).sort((a, b) => b[1] - a[1]);
+            const sortedNumbers = Object.entries(stats.field1)
+                .filter(([num]) => !isNaN(num))
+                .sort((a, b) => b[1] - a[1]);
+
             const hotNumbers = sortedNumbers.slice(0, 5).map(item => parseInt(item[0]));
             const coldNumbers = sortedNumbers.slice(-5).map(item => parseInt(item[0]));
 
             sortedNumbers.forEach(([num, count]) => {
+                const numInt = parseInt(num);
+                if (isNaN(numInt)) return;
+
                 const row = document.createElement('tr');
                 const numCell = document.createElement('td');
                 const countCell = document.createElement('td');
                 const statusCell = document.createElement('td');
 
-                numCell.textContent = num;
+                numCell.textContent = numInt;
                 countCell.textContent = count;
 
-                if (hotNumbers.includes(parseInt(num))) {
+                if (hotNumbers.includes(numInt)) {
                     statusCell.textContent = 'Горячее';
                     statusCell.className = 'hot';
-                } else if (coldNumbers.includes(parseInt(num))) {
+                } else if (coldNumbers.includes(numInt)) {
                     statusCell.textContent = 'Холодное';
                     statusCell.className = 'cold';
                 }
@@ -393,8 +404,27 @@
         }
 
         function getWeightedNumbers(numberStats, count) {
-            const numbers = Object.keys(numberStats).map(Number);
-            const weights = numbers.map(num => numberStats[num] || 1);
+            // Фильтруем корректные числа
+            const validEntries = Object.entries(numberStats)
+                .filter(([num]) => {
+                    const n = parseInt(num);
+                    return !isNaN(n) && (count === 1 ? (n >= 1 && n <= 4) : (n >= 1 && n <= 20));
+                });
+            
+            // Если нет статистики - случайные числа
+            if (validEntries.length === 0) {
+                if (count === 1) return Math.floor(Math.random() * 4) + 1;
+                
+                const result = [];
+                while (result.length < 8) {
+                    const num = Math.floor(Math.random() * 20) + 1;
+                    if (!result.includes(num)) result.push(num);
+                }
+                return result.sort((a, b) => a - b);
+            }
+
+            const numbers = validEntries.map(([num]) => parseInt(num));
+            const weights = validEntries.map(([, cnt]) => cnt);
             const minWeight = Math.min(...weights);
             const adjustedWeights = weights.map(w => w + minWeight);
 
@@ -425,11 +455,23 @@
             const field1El = document.getElementById('field1');
             const field2El = document.getElementById('field2');
 
-            field1El.innerHTML = Array.isArray(field1) 
-                ? field1.map(num => `<div class="number">${num}</div>`).join('')
-                : `<div class="number">${field1}</div>`;
+            // Проверка на NaN и корректные значения
+            const displayField1 = Array.isArray(field1) 
+                ? field1.filter(n => !isNaN(n) && n >= 1 && n <= 20)
+                : [];
+            const displayField2 = (!isNaN(field2) && field2 >= 1 && field2 <= 4) ? field2 : 1;
 
-            field2El.innerHTML = `<div class="number small">${field2}</div>`;
+            // Если что-то пошло не так - генерируем случайные числа
+            if (displayField1.length !== 8) {
+                return generateRandomNumbers();
+            }
+
+            field1El.innerHTML = displayField1
+                .sort((a, b) => a - b)
+                .map(num => `<div class="number">${num}</div>`)
+                .join('');
+
+            field2El.innerHTML = `<div class="number small">${displayField2}</div>`;
         }
 
         function addHistory() {
