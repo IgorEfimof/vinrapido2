@@ -94,6 +94,10 @@
         button:active {
             background: #004499;
         }
+        button.secondary {
+            background: #e5e5ea;
+            color: #1c1c1e;
+        }
         #fakeInput {
             position: absolute;
             opacity: 0;
@@ -131,9 +135,19 @@
             font-weight: bold;
         }
         .history-item {
-            padding: 6px 0;
+            padding: 8px 0;
             border-bottom: 1px solid #eee;
             font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-item button {
+            width: auto;
+            padding: 2px 8px;
+            margin: 0;
+            background: #ff2d55;
+            color: white;
         }
         .custom-keyboard {
             position: fixed;
@@ -197,7 +211,8 @@
             <p>Поле 2 (1 из 4):</p>
             <div class="numbers" id="field2"></div>
             <button id="smartGenBtn">Умная генерация</button>
-            <button id="randomGenBtn">Случайные числа</button>
+            <button id="randomGenBtn" class="secondary">Случайные числа</button>
+            <button id="refreshStatsBtn" class="secondary">Обновить анализ</button>
         </div>
         
         <div class="card">
@@ -240,7 +255,7 @@
         <div class="card">
             <h2>История розыгрышей</h2>
             <div id="historyList"></div>
-            <button id="clearHistoryBtn">Очистить историю</button>
+            <button id="clearHistoryBtn" class="secondary">Очистить историю</button>
         </div>
     </div>
 
@@ -289,6 +304,7 @@
             // Обработчики событий
             document.getElementById('smartGenBtn').addEventListener('click', generateSmartNumbers);
             document.getElementById('randomGenBtn').addEventListener('click', generateRandomNumbers);
+            document.getElementById('refreshStatsBtn').addEventListener('click', refreshStats);
             document.getElementById('addHistoryBtn').addEventListener('click', addHistory);
             document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
             
@@ -433,6 +449,11 @@
             displayNumbers(field1, field2);
         }
 
+        function refreshStats() {
+            updateStats();
+            generateSmartNumbers();
+        }
+
         function getWeightedNumbers(numberStats, count, maxNum) {
             // Создаем массив всех возможных чисел
             const allNumbers = Array.from({length: maxNum}, (_, i) => i + 1);
@@ -508,8 +529,10 @@
                 return alert("Используйте формат: 1,2,3,4,5,6,7,8 | 1");
             }
 
-            history.push(inputText);
+            // Добавляем новую запись в начало массива
+            history.unshift(inputText);
             localStorage.setItem('rapido2_history', JSON.stringify(history));
+            
             inputText = '';
             inputDisplay.textContent = 'Коснитесь для ввода (формат: 1,2,3,4,5,6,7,8 | 1)';
             inputDisplay.style.color = '#666';
@@ -521,12 +544,24 @@
         function updateHistoryList() {
             const historyList = document.getElementById('historyList');
             historyList.innerHTML = history.map((item, index) => 
-                `<div class="history-item">${index + 1}. ${item}</div>`
+                `<div class="history-item">
+                    <span><strong>${index + 1}.</strong> ${item}</span>
+                    <button onclick="deleteHistoryItem(${index})">×</button>
+                </div>`
             ).join('');
         }
 
+        function deleteHistoryItem(index) {
+            if (confirm("Удалить эту запись из истории?")) {
+                history.splice(index, 1);
+                localStorage.setItem('rapido2_history', JSON.stringify(history));
+                updateStats();
+                updateHistoryList();
+            }
+        }
+
         function clearHistory() {
-            if (confirm("Удалить всю историю?")) {
+            if (confirm("Удалить всю историю розыгрышей?")) {
                 history = [];
                 localStorage.removeItem('rapido2_history');
                 updateStats();
