@@ -89,17 +89,22 @@
         button:active {
             background: #004499;
         }
-        #historyInput {
+        #fakeInput {
+            position: absolute;
+            opacity: 0;
+            height: 0;
+            width: 0;
+        }
+        #inputDisplay {
             width: 100%;
-            height: 70px;
+            min-height: 70px;
             border: 1px solid #ddd;
             border-radius: 8px;
             padding: 8px;
             margin-bottom: 8px;
             font-size: 15px;
-            resize: none;
-            caret-color: transparent;
             background: white;
+            word-wrap: break-word;
         }
         .stats-table {
             width: 100%;
@@ -193,7 +198,8 @@
         <div class="card">
             <h2>Добавить историю</h2>
             <div id="inputContainer" style="position:relative;">
-                <textarea id="historyInput" placeholder="Коснитесь для ввода (формат: 1,2,3,4,5,6,7,8 | 1)"></textarea>
+                <input type="text" id="fakeInput" readonly>
+                <div id="inputDisplay" onclick="showKeyboard()">Коснитесь для ввода (формат: 1,2,3,4,5,6,7,8 | 1)</div>
             </div>
             <button id="addHistoryBtn">Добавить</button>
         </div>
@@ -248,11 +254,12 @@
         // Данные
         let history = JSON.parse(localStorage.getItem('rapido2_history')) || [];
         let stats = { field1: {}, field2: {} };
+        let inputText = '';
         
         // Элементы интерфейса
-        const historyInput = document.getElementById('historyInput');
+        const inputDisplay = document.getElementById('inputDisplay');
+        const fakeInput = document.getElementById('fakeInput');
         const customKeyboard = document.getElementById('customKeyboard');
-        const inputContainer = document.getElementById('inputContainer');
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
@@ -261,11 +268,6 @@
             generateRandomNumbers();
             
             // Обработчики событий
-            inputContainer.addEventListener('click', (e) => {
-                e.stopPropagation();
-                showKeyboard();
-            });
-            
             document.getElementById('smartGenBtn').addEventListener('click', generateSmartNumbers);
             document.getElementById('randomGenBtn').addEventListener('click', generateRandomNumbers);
             document.getElementById('addHistoryBtn').addEventListener('click', addHistory);
@@ -280,37 +282,48 @@
             });
             
             // Скрытие клавиатуры при клике вне поля ввода
-            document.addEventListener('click', hideKeyboard);
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#inputContainer') && !e.target.closest('.custom-keyboard')) {
+                    hideKeyboard();
+                }
+            });
         });
 
         // Функции клавиатуры
         function showKeyboard() {
             customKeyboard.style.display = 'flex';
-            historyInput.focus();
+            fakeInput.focus();
+            inputDisplay.textContent = inputText || '';
+            inputDisplay.style.color = '#1c1c1e';
+            
+            // Прокрутка к полю ввода
+            setTimeout(() => {
+                inputDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
         }
 
         function hideKeyboard() {
-            if (customKeyboard.style.display === 'flex') {
-                customKeyboard.style.display = 'none';
-            }
+            customKeyboard.style.display = 'none';
+            fakeInput.blur();
         }
 
         function handleKeyPress(key) {
             switch(key) {
                 case 'Backspace':
-                    historyInput.value = historyInput.value.slice(0, -1);
+                    inputText = inputText.slice(0, -1);
                     break;
                 case 'Enter':
                     hideKeyboard();
-                    break;
+                    return;
                 default:
-                    historyInput.value += key;
+                    inputText += key;
             }
+            
+            inputDisplay.textContent = inputText || 'Коснитесь для ввода (формат: 1,2,3,4,5,6,7,8 | 1)';
+            inputDisplay.style.color = inputText ? '#1c1c1e' : '#666';
         }
 
-        // Остальные функции (updateStats, generateSmartNumbers и т.д.) остаются без изменений
-        // ... (вставить все остальные функции из предыдущего кода)
-
+        // Остальные функции
         function updateStats() {
             stats = { field1: {}, field2: {} };
 
@@ -420,18 +433,19 @@
         }
 
         function addHistory() {
-            const input = historyInput.value.trim();
-            if (!input) return alert("Введите данные!");
+            if (!inputText) return alert("Введите данные!");
 
-            if (!input.includes('|')) {
+            if (!inputText.includes('|')) {
                 return alert("Используйте формат: 1,2,3,4,5,6,7,8 | 1");
             }
 
-            history.push(input);
+            history.push(inputText);
             localStorage.setItem('rapido2_history', JSON.stringify(history));
+            inputText = '';
+            inputDisplay.textContent = 'Коснитесь для ввода (формат: 1,2,3,4,5,6,7,8 | 1)';
+            inputDisplay.style.color = '#666';
             updateStats();
             updateHistoryList();
-            historyInput.value = '';
             hideKeyboard();
         }
 
